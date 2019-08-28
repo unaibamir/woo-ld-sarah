@@ -37,6 +37,17 @@ if ( ! defined( 'WPINC' ) ) {
  */
 define( 'WOO_LD_CUSTOMIZATION_VERSION', '1.0.0' );
 
+if (!function_exists("dd")) {
+	function dd($data, $exit_data = true)
+	{
+		echo '<pre>' . print_r($data, true) . '</pre>';
+		if ($exit_data == false)
+			echo '';
+		else
+			exit;
+	}
+}
+
 /**
  * The code that runs during plugin activation.
  * This action is documented in includes/class-woo-ld-customization-activator.php
@@ -75,8 +86,10 @@ require plugin_dir_path( __FILE__ ) . 'includes/class-woo-ld-customization.php';
  */
 function run_woo_ld_customization() {
 
-	$plugin = new Woo_Ld_Customization();
-	$plugin->run();
-
+	if( class_exists("SFWD_LMS") ) {
+		$plugin = new Woo_Ld_Customization();
+		$plugin->run();
+	}
 }
+
 run_woo_ld_customization();

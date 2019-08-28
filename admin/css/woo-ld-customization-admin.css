@@ -2,3 +2,9 @@
  * All of the CSS for your admin-specific functionality should be
  * included in this file.
  */
+
+
+.sfwd_input.woo_ld_quiz_selection {
+	width: 100% !important;
+	padding: 5px !important;
+}

@@ -77,7 +77,7 @@ class Woo_Ld_Customization {
 		$this->load_dependencies();
 		$this->set_locale();
 		$this->define_admin_hooks();
-		$this->define_public_hooks();
+		//$this->define_public_hooks();
 
 	}
 
@@ -154,8 +154,11 @@ class Woo_Ld_Customization {
 
 		$plugin_admin = new Woo_Ld_Customization_Admin( $this->get_plugin_name(), $this->get_version() );
 
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
-		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles', 9999 );
+		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts', 9999 );
+		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'learndash_quiz_selection_add_meta_box' );
+		$this->loader->add_action( 'wp_ajax_get_quiz_questions', $plugin_admin, 'get_quiz_questions' );
+		$this->loader->add_action( 'save_post', $plugin_admin, 'learndash_save_post_options' );
 
 	}
 
@@ -170,8 +173,8 @@ class Woo_Ld_Customization {
 
 		$plugin_public = new Woo_Ld_Customization_Public( $this->get_plugin_name(), $this->get_version() );
 
-		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
-		//$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
+		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
+		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
 
 	}
 
