@@ -158,7 +158,11 @@ class Woo_Ld_Customization {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts', 9999 );
 		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'learndash_quiz_selection_add_meta_box' );
 		$this->loader->add_action( 'wp_ajax_get_quiz_questions', $plugin_admin, 'get_quiz_questions' );
+		$this->loader->add_action( 'wp_ajax_get_question_answers', $plugin_admin, 'get_question_answers' );
 		$this->loader->add_action( 'save_post', $plugin_admin, 'learndash_save_post_options' );
+
+		$this->loader->add_action( 'sfwd_lms_has_access', $plugin_admin, 'learndash_has_access', 999, 3 );
+		$this->loader->add_action( 'learndash_quiz_completed', $plugin_admin, 'learndash_quiz_completed', 999, 2 );
 
 	}
 
