@@ -142,6 +142,10 @@ class Woo_Ld_Customization_Admin {
 
 				$counter = 1;
 				foreach ($questions_data as $key => $question) {
+					$q_type 							= get_post_meta($question->ID, "question_type", true);
+					if( $q_type != "single" ) {
+						continue;
+					}
 					$questions[$counter]["id"] 			= 	$question->ID;
 					$questions[$counter]["title"] 		= 	$question->post_title;
 					$questions[$counter]["quiz_id"] 	= 	get_post_meta($question->ID, "quiz_id", true);
@@ -457,15 +461,20 @@ class Woo_Ld_Customization_Admin {
 
 		if ( !in_array($post_type, array( 'sfwd-courses', 'sfwd-lessons', 'sfwd-topic' )) ) return;
 
-		if( !isset($_POST["woo_ld_cus_wpnonce"]) && !wp_verify_nonce( $_POST["woo_ld_cus_wpnonce"], "woo_ld_cus_action" ) ) {
+		if( !isset($_POST["woo_ld_cus_wpnonce"]) || !wp_verify_nonce( $_POST["woo_ld_cus_wpnonce"], "woo_ld_cus_action" ) ) {
 			wp_die("Something is wrong!");
 		}
 
 		update_post_meta( $post_id, "_woo_restrict_post", filter_var( $_POST["woo_ld"]["post_restrict"], FILTER_SANITIZE_NUMBER_INT ) );
-
-		update_post_meta( $post_id, "_woo_quiz_id", 	sanitize_text_field( $_POST["woo_ld"]["quiz_id"] ) );
-		update_post_meta( $post_id, "_woo_question_id", sanitize_text_field( $_POST["woo_ld"]["question_id"] ) );
-		update_post_meta( $post_id, "_woo_answer_id", 	sanitize_text_field( $_POST["woo_ld"]["answer_id"] ) );
+		if( $_POST["woo_ld"]["post_restrict"] == 1 ) {
+			update_post_meta( $post_id, "_woo_quiz_id", 	sanitize_text_field( $_POST["woo_ld"]["quiz_id"] ) );
+			update_post_meta( $post_id, "_woo_question_id", sanitize_text_field( $_POST["woo_ld"]["question_id"] ) );
+			update_post_meta( $post_id, "_woo_answer_id", 	sanitize_text_field( $_POST["woo_ld"]["answer_id"] ) );
+		} else {
+			update_post_meta( $post_id, "_woo_quiz_id", 	"" );
+			update_post_meta( $post_id, "_woo_question_id", "" );
+			update_post_meta( $post_id, "_woo_answer_id", 	"" );
+		}
 	}
 
 
