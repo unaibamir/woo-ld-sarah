@@ -455,13 +455,22 @@ class Woo_Ld_Customization_Admin {
 		wp_nonce_field( "woo_ld_cus_action", 'woo_ld_cus_wpnonce' );
 	}
 
-	public function learndash_save_post_options($post_id) {
+	public function learndash_save_post_options( $post_id, $post) {
 		
 		$post_type 	= get_post_type($post_id);
 
 		if ( !in_array($post_type, array( 'sfwd-courses', 'sfwd-lessons', 'sfwd-topic' )) ) return;
 
-		if( !isset($_POST["woo_ld_cus_wpnonce"]) || !wp_verify_nonce( $_POST["woo_ld_cus_wpnonce"], "woo_ld_cus_action" ) ) {
+		if ('auto-draft' == $post->post_status) {
+			return;
+		}
+
+		// If this is just a revision, don't send the email.
+		if ( wp_is_post_revision( $post_id ) ) {
+			return;
+        }
+
+		if( isset($_POST["woo_ld_cus_wpnonce"]) && !wp_verify_nonce( $_POST["woo_ld_cus_wpnonce"], "woo_ld_cus_action" ) ) {
 			wp_die("Something is wrong!");
 		}
 
