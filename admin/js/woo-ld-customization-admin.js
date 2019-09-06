@@ -26,7 +26,16 @@
 		};
 
 		jQuery.post(WOOLD.ajax_url, data, function(response){
-			if( response.success ) {				
+			
+			if( typeof response == "string" ) {
+				response = JSON.parse(response);
+			}
+			console.log(typeof response);
+			console.log(response);
+
+			if( response.success ) {
+				$('#woo_ld_question').empty().select2({data : questions_data});
+				$('#woo_ld_answer').empty().select2({data : answers_data });
 				if(response.data) {
 					$.each(response.data, function (index) {
 			            questions_data.push({
@@ -40,6 +49,9 @@
 					console.log(questions_data);
 					console.log(answers_data);
 				}
+			} else {
+				$('#woo_ld_question').empty().select2({data : [{ "id":"","text"	: WOOLD.select_question }] });
+				$('#woo_ld_answer').empty().select2({data : answers_data });
 			}
 		});
 	});
@@ -47,7 +59,7 @@
 	$('#woo_ld_question').on('select2:select', function (e) {
 		var data 			= e.params.data;
 		var question_id 		= data.id;
-		var answerss_data 	= [];
+		var answers_data 	= [];
 
 		var data = {
 			'action'	: 'get_question_answers',
@@ -55,17 +67,24 @@
 		};
 
 		jQuery.post(WOOLD.ajax_url, data, function(response){
+			if( typeof response == "string" ) {
+				response = JSON.parse(response);
+			}
+			console.log(typeof response);
+			console.log(response);
 			if( response.success ) {
+				$('#woo_ld_answer').empty().select2({data: answers_data});
 				if(response.data) {
 					$.each(response.data, function (index) {
-			            answerss_data.push({
+			            answers_data.push({
 			                id: response.data[index].id,
 			                text: response.data[index].title
 			            });
 			        });
-					$('#woo_ld_answer').empty();
-			        $('#woo_ld_answer').select2({data: answerss_data});
+			        $('#woo_ld_answer').empty().select2({data: answers_data});
 				}
+			} else {
+				$('#woo_ld_answer').empty().select2({data : [{ "id":"","text"	: WOOLD.select_answer }] });
 			}
 		});
 	});

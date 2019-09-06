@@ -528,7 +528,7 @@ class Woo_Ld_Customization_Admin {
 		if( learndash_is_admin_user( $user_id ) && $bypass_course_limits_admin_users ) {
 			$has_access = true;
 		} else if( !learndash_is_admin_user( $user_id ) && $woo_restrict_post == 1 ) {
-			if($has_passed) {
+			if( $has_passed ) {
 				$has_access = true;
 			} else {
 				$has_access = false;
@@ -555,6 +555,7 @@ class Woo_Ld_Customization_Admin {
 		$woo_answer_id 			= get_post_meta($post_id, "_woo_answer_id", true);
 		$user_quizzes 			= get_user_meta($user_id, "_sfwd-quizzes", true);
 		$question_pro_id 		= get_post_meta($woo_question_id, 'question_pro_id', true);
+		$response 				= false;
 
 		if( empty($user_quizzes) )
 			return false;
@@ -562,53 +563,106 @@ class Woo_Ld_Customization_Admin {
 		$user_quizzes 			= array_reverse($user_quizzes);
 		foreach ($user_quizzes as $key => $user_quiz) {
 			if( $user_quiz["quiz"] == $woo_quiz_id ) {
-
 				$quiz_id 			= $woo_quiz_id;
 				$quiz_pro_id 		= get_post_meta($quiz_id, "quiz_pro_id", true);
 				$quiz_stat_ref_ids 	= $user_quiz["statistic_ref_id"];
 
-				$view = new WpProQuiz_View_FrontQuiz();
-				$quizMapper = new WpProQuiz_Model_QuizMapper();
-				$quiz = $quizMapper->fetch( $quiz_pro_id );
-				if ( $quiz_id !== absint( $quiz->getPostId() ) ) {
-					$quiz->setPostId( $quiz_id );
+				$statisticRefMapper = new WpProQuiz_Model_StatisticRefMapper();
+				$statisticModel = $statisticRefMapper->fetchByRefId($quiz_stat_ref_ids, $quiz_pro_id);
+				if ( $statisticModel instanceof WpProQuiz_Model_StatisticRefModel ) {
+					$userId = $statisticModel->getUserId();
 				}
+				$statisticUserMapper = new WpProQuiz_Model_StatisticUserMapper();
+				$formMapper = new WpProQuiz_Model_FormMapper();
+				$statisticUsers = $statisticUserMapper->fetchUserStatistic($quiz_stat_ref_ids, $quiz_pro_id);
 
-				$questionMapper = new WpProQuiz_Model_QuestionMapper();
-				$categoryMapper = new WpProQuiz_Model_CategoryMapper();
-				$formMapper     = new WpProQuiz_Model_FormMapper();
+				$output = array();
 
-				$questionModels = $questionMapper->fetchAll( $quiz );
+				// start foreach
+				foreach($statisticUsers as $statistic) {
+					if(!isset($output[$statistic->getCategoryId()])) {
+						$output[$statistic->getCategoryId()] = array(
+							'questions' => array(),
+							'categoryId' => $statistic->getCategoryId(),
+							'categoryName' => $statistic->getCategoryId() ? $statistic->getCategoryName() : esc_html__('No category', "")
+						);
+					}
 
-				$view->quiz     = $quiz;
-				$view->question = $questionModels;
-				$view->category = $categoryMapper->fetchByQuiz( $quiz );
+					$o = &$output[$statistic->getCategoryId()];
+					$question_item = array(
+						'correct' => $statistic->getCorrectCount(),
+						'incorrect' => $statistic->getIncorrectCount(),
+						'hintCount' => $statistic->getHintCount(),
+						'time' => $statistic->getQuestionTime(),
+						'points' => $statistic->getPoints(),
+						'gPoints' => $statistic->getGPoints(),
+						'statistcAnswerData' => $statistic->getStatisticAnswerData(),
+						'questionName' => $statistic->getQuestionName(),
+						'questionAnswerData' => $statistic->getQuestionAnswerData(),
+						'answerType' => $statistic->getAnswerType(),
+						'questionId' => $statistic->getQuestionId()
+					);
 
-				$question_count = count( $questionModels );
-				ob_start();
-				$quizData = $view->showQuizBox( $question_count );
-				ob_get_clean();
-
-				$json    = $quizData['json'];
-				$results = array();
-				$question_index = 0;
-				$questionData           = $json[ $question_pro_id ];
-				$q_answers 				= $questionModels[$woo_question_id]->getAnswerData();
-				foreach ($q_answers as $q_answer) {
-					if( $q_answer->isCorrect() == 1 ) {
-						if( $q_answer->getAnswer() == $woo_answer_id ) {
-							return true;
-						} else {
-							return false;
+					$questionId = $statistic->getQuestionId();
+					if ( !empty( $questionId ) ) {
+						$questionMapper = new WpProQuiz_Model_QuestionMapper();
+						$question       = $questionMapper->fetchById( intval( $questionId ) );
+						if ( ( !empty( $question ) ) && ( $question instanceof WpProQuiz_Model_Question ) ) {					
+							$question_item['questionCorrectMsg'] = $question->getCorrectMsg();
+							$question_item['questionIncorrectMsg'] = $question->getIncorrectMsg();
 						}
 					}
+
+					$question_item['result'] = '';
+					$question_item['result'] = apply_filters( 'learndash-quiz-statistics-result', $question_item['result'], $question_item );
+					$o['questions'][] = $question_item;
+
 				}
-				break;
+				// end foreach
+
+				$quiz_result = $o;
+				$questions = $quiz_result["questions"];
+				$question_counter = 1;
+
+				foreach ($questions as $key => $question) {
+					if( $question_pro_id != $question["questionId"] ) {
+						continue;
+					}
+
+					$user_ans_key = array_search(1, $questions[$key]["statistcAnswerData"]);
+
+					$user_selected_ans = $question["questionAnswerData"][$user_ans_key]->getAnswer();
+
+					if( sanitize_text_field($woo_answer_id) == sanitize_text_field($user_selected_ans) ) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+				
+				return false;
 			} else {
 				return false;
 			}
 		}
 		return false;
+	}
+
+
+	public function learndash_save_quiz_options( $quiz_id, $quiz ) {
+		$meta = get_post_meta( $quiz_id, '_sfwd-quiz', true );
+		$meta["sfwd-quiz_statisticsOn"] = "on";
+		update_post_meta($quiz_id, '_sfwd-quiz', $meta, null);
+	}
+
+
+	public function learndash_quiz_admin_options( $quiz_options, $quiz_key ) {
+		if( $quiz_key == "learndash-quiz-admin-data-handling-settings" ) {
+			$quiz_options["statisticsOn"]["default"] = "on";
+			$quiz_options["statisticsOn"]["value"] = "on";
+		}
+
+		return $quiz_options;
 	}
 
 }
